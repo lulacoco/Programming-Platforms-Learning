@@ -27,10 +27,10 @@ class Address(Base):
     state = Column(String)
     zip = Column(String)
     user = relationship("User", uselist=False, back_populates="address")
-
+    
     def __repr__(self):
         return "<Address(street='%s', number='%s', city='%s', state='%s', zip='%s')>" % (
-            self.street, self.number, self.city, self.state, self.zip)
+                                                                                         self.street, self.number, self.city, self.state, self.zip)
 
 
 class Email(Base):
@@ -40,10 +40,10 @@ class Email(Base):
     email_2 = Column(String, nullable=True)
     email_3 = Column(String, nullable=True)
     user = relationship("User", back_populates="email")
-
+    
     def __repr__(self):
         return "<Email(email_1='%s', email_2='%s', email_3='%s')>" % (
-            self.email_1, self.email_2, self.email_3)
+                                                                      self.email_1, self.email_2, self.email_3)
 
 
 class Telephone(Base):
@@ -53,10 +53,23 @@ class Telephone(Base):
     tel_2 = Column(String, nullable=True)
     tel_3 = Column(String, nullable=True)
     user = relationship("User", back_populates="telephone")
-
+    
     def __repr__(self):
         return "<Telephone(tel_1='%s', tel_2='%s', tel_3='%s')>" % (
-            self.tel_1, self.tel_2, self.tel_3)
+                                                                    self.tel_1, self.tel_2, self.tel_3)
+
+
+class Friend(Base):
+    __tablename__ = "friend"
+    id = Column(Integer, primary_key=True)
+    friend_1 = Column(Integer, nullable=True)
+    friend_2 = Column(Integer, nullable=True)
+    friend_3 = Column(Integer, nullable=True)
+    user = relationship("User", back_populates="friend")
+    
+    def __repr__(self):
+        return "<Friend(friend_1='%s', friend_2='%s', friend_3='%s')>" % (
+                                                                          self.friend_1, self.friend_2, self.friend_3)
 
 
 #TODO lista osob powiazana z biezaca osoba
@@ -68,14 +81,16 @@ class User(Base):
     address_id = Column(Integer, ForeignKey('address.id'))
     email_id = Column(Integer, ForeignKey('email.id'))
     telephone_id = Column(Integer, ForeignKey('telephone.id'))
-
+    friend_id = Column(Integer, ForeignKey('friend.id'))
+    
     address = relationship("Address", back_populates='user')
     email = relationship("Email", back_populates="user")
     telephone = relationship("Telephone", back_populates='user')
-
+    friend = relationship("Friend", back_populates='user')
+    
     def __repr__(self):
         return "<User(name='%s', surname='%s')>" % (
-            self.name, self.surname)
+                                                    self.name, self.surname)
 
 
 Base.metadata.create_all(engine)
@@ -91,19 +106,23 @@ def create_user():
     zip = input("Podaj kod pocztowy osoby: ")
     email = input("Podaj email osoby: ")
     telephone = input("Podaj telefon osoby: ")
-
+    friend = input("Podaj ID przyjaciela osoby: ")
+    
     a = Address(street=street, number=number, city=city, state=state, zip=zip)
     e = Email(email_1=email)
     t = Telephone(tel_1=telephone)
+    f = Friend(friend_1=friend)
     u = User(name=name, surname=surname)
-
+    
     u.address = a
     u.email = e
     u.telephone = t
-
+    u.friend = f
+    
     session.add(a)
     session.add(e)
     session.add(t)
+    session.add(f)
     session.add(u)
     session.commit()
 
@@ -115,13 +134,15 @@ def find_user():
     a = Address
     e = Email
     t = Telephone
-
+    f = Friend
+    
     ua = join(u, a, u.address_id == a.id)
     ue = join(ua, e, u.email_id == e.id)
     ut = join(ue, t, u.telephone_id == t.id)
-
-    stmt = select([u, a, e, t]).select_from(ut).where(u.name == name)
-
+    uf = join(ut, f, u.friend_id == f.id)
+    
+    stmt = select([u, a, e, t, f]).select_from(uf).where(u.name == name)
+    
     for row in conn.execute(stmt):
         print(row)
 
